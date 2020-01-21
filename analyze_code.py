@@ -1,5 +1,6 @@
 import os
 import time
+import json
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +11,9 @@ class NodeInstance:
     def __init__(self, path: str):
         self.path = path
         self.name = os.path.basename(path)
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 class FileInstance(NodeInstance):
@@ -55,6 +59,21 @@ file_format = {
 }
 
 
+def build_file_tree(path: str):
+
+    if os.path.isfile(path):
+        if is_binary(path):
+            return BinFileInstance(path)
+        else:
+            return TextFileInstance(path)
+    else:
+        file_list = os.listdir(path)
+        children = list(map(lambda child_file: f'{path}/{child_file}', file_list))
+        children = list(map(lambda child: build_file_tree(child), children))
+
+        return DirectoryInstance(path, children)
+
+
 def print_binary_files(path):
     base_name = os.path.basename(path)
     if base_name in ignore_files:
@@ -72,4 +91,6 @@ def print_binary_files(path):
 
 if __name__ == '__main__':
     root_dir = '.'
-    print_binary_files(root_dir)
+    # print_binary_files(root_dir)
+    file_tree = build_file_tree(root_dir)
+    print(file_tree.toJSON())
