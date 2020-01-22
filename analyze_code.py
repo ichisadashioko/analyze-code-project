@@ -6,6 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from binaryornot.check import is_binary
 
+from kivy.app import App
+from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.floatlayout import FloatLayout
+
 
 class NodeInstance:
     def __init__(self, path: str):
@@ -28,7 +32,10 @@ class TextFileInstance(FileInstance):
     def __init__(self, path: str):
         FileInstance.__init__(self, path)
 
-        self.line_count = sum(1 for line in open(path))
+        try:
+            self.line_count = sum(1 for line in open(path))
+        except:
+            print(f'Error reading {path}')
 
 
 class BinFileInstance(FileInstance):
@@ -89,8 +96,46 @@ def print_binary_files(path):
             print_binary_files(child_path)
 
 
+def populate_tree_view(tree_view, parent, node: NodeInstance):
+    if parent is None:
+        tree_node = tree_view.add_node(
+            TreeViewLabel(text=node.name, is_open=True),
+            parent,
+        )
+    else:
+        tree_node = tree_view.add_node(
+            TreeViewLabel(text=node.name, is_open=True),
+            parent,
+        )
+
+    if isinstance(node, DirectoryInstance):
+        for child_node in node.children:
+            populate_tree_view(tree_view, tree_node, child_node)
+
+
+class TreeWidget(FloatLayout):
+    def __init__(self):
+        super(TreeWidget, self).__init__()
+
+        tv = TreeView(
+            root_options=dict(text='Tree One'),
+            hide_root=False,
+            indent_level=4,
+        )
+
+        populate_tree_view(tv, None, file_tree)
+
+        self.add_widget(tv)
+
+
+class FileTreeApp(App):
+    def build(self):
+        return TreeWidget()
+
+
 if __name__ == '__main__':
     root_dir = '.'
     # print_binary_files(root_dir)
     file_tree = build_file_tree(root_dir)
-    print(file_tree.toJSON())
+    # print(file_tree.toJSON())
+    FileTreeApp().run()
